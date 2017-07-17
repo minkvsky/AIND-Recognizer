@@ -6,6 +6,7 @@ import numpy as np
 from hmmlearn.hmm import GaussianHMM
 from sklearn.model_selection import KFold
 from asl_utils import combine_sequences
+from sklearn.model_selection import GridSearchCV # new added
 
 
 class ModelSelector(object):
@@ -105,4 +106,13 @@ class SelectorCV(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection using CV
-        raise NotImplementedError
+        # GridSearchCV
+        parameters = {'n_components': [self.min_n_components, self.max_n_components]}
+        hmm_model = GaussianHMM(covariance_type="diag", n_iter=1000,
+                                random_state=self.random_state, verbose=False)
+        clf = GridSearchCV(hmm_model, parameters, cv=2)
+
+        clf.fit(self.sequences, self.lengths)
+        return clf.best_params_['n_components']
+
+        # raise NotImplementedError
