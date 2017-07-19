@@ -78,7 +78,26 @@ class SelectorBIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on BIC scores
-        raise NotImplementedError
+        try:
+            bestscore = 0
+            best_num_components = self.min_n_components
+            ls_res = []
+            for n_components in [self.min_n_components, self.max_n_components]:
+                score = self.bic_model(n_components)[1]
+                ls_res.append((n_components, score))
+            return max(ls_res, key = lambda x:x[1])[0]
+        except:
+            return self.base_model(self.n_constant)
+
+    def bic_model(self, n_components):
+
+        model = self.base_model(n)
+        logL = model.score(self.X, self.lengths)
+        logN = np.log(len(self.X))
+        p = n_components ** 2 + 2 * model.n_features * n_components - 1
+        bic_score = -2 * logL + p * logN
+
+        return model, bic_score
 
 
 class SelectorDIC(ModelSelector):
@@ -94,7 +113,28 @@ class SelectorDIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        try:
+            bestscore = 0
+            best_num_components = self.min_n_components
+            ls_res = []
+            for n_components in [self.min_n_components, self.max_n_components]:
+                score = self.dic_model(n_components)[1]
+                ls_res.append((n_components, score))
+            return max(ls_res, key = lambda x:x[1])[0]
+        except:
+            return self.base_model(self.n_constant)
+
+
+    def dic_model(self, n_components):
+
+        model = self.base_model(n)
+        scores = []
+        for word, (X, lengths) in self.hwords.items():
+            if word != self.this_word:
+                scores.append(model.score(X, lengths))
+        dic_score = model.score(self.X, self.lengths) - np.mean(scores)
+        return model, dic_score
+
 
 
 class SelectorCV(ModelSelector):
@@ -106,13 +146,35 @@ class SelectorCV(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection using CV
-        # GridSearchCV
-        parameters = {'n_components': [self.min_n_components, self.max_n_components]}
-        hmm_model = GaussianHMM(covariance_type="diag", n_iter=1000,
-                                random_state=self.random_state, verbose=False)
-        clf = GridSearchCV(hmm_model, parameters, cv=2)
+        # GridSearchCV failed
+        # parameters = {'n_components': [self.min_n_components, self.max_n_components]}
+        # hmm_model = GaussianHMM(covariance_type="diag", n_iter=1000,
+        #                         random_state=self.random_state, verbose=False)
+        # clf = GridSearchCV(hmm_model, parameters, cv=2)
+        #
+        # # clf.fit(self.sequences, self.lengths)
+        # clf.fit(self.X, self.lengths)
+        # return clf.best_params_['n_components']
 
-        clf.fit(self.sequences, self.lengths)
-        return clf.best_params_['n_components']
+        try:
+            bestscore = 0
+            best_num_components = self.min_n_components
+            ls_res = []
+            for n_components in [self.min_n_components, self.max_n_components]:
+                score = self.CV_model(n_components)[1]
+                ls_res.append((n_components, score))
+            return max(ls_res, key = lambda x:x[1])[0]
+        except:
+            return self.base_model(self.n_constant)
 
-        # raise NotImplementedError
+    def CV_model(self, n_components):
+
+        split_method = KFold(2)
+        ls_model_score = []
+        for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
+            self.X, self.lengths = combine_sequences(cv_train_idx, cv_test_idx)
+            model = self.base_model(n_components)
+            score = model.score(self.X, self.lengths)
+            ls_model_score.append((model, score))
+
+        return max(ls_model_score, key = lambda x:x[1])
