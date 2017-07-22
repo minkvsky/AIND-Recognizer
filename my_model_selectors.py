@@ -89,7 +89,7 @@ class SelectorBIC(ModelSelector):
 
     def bic_model(self, n_components):
 
-        model = self.base_model(n)
+        model = self.base_model(n_components)
         logL = model.score(self.X, self.lengths)
         logN = np.log(len(self.X))
         p = n_components ** 2 + 2 * model.n_features * n_components - 1
@@ -110,7 +110,7 @@ class SelectorDIC(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on DIC scores
+
         try:
             ls_res = []
             for n_components in range(self.min_n_components, self.max_n_components+1):
@@ -123,7 +123,7 @@ class SelectorDIC(ModelSelector):
 
     def dic_model(self, n_components):
 
-        model = self.base_model(n)
+        model = self.base_model(n_components)
         scores = []
         for word, (X, lengths) in self.hwords.items():
             if word != self.this_word:
@@ -131,43 +131,6 @@ class SelectorDIC(ModelSelector):
         score = model.score(self.X, self.lengths) - np.mean(scores)
         return model, score
 
-# class SelectorDIC(ModelSelector):
-#     """ select best model based on Discriminative Information Criterion
-#     Biem, Alain. "A model selection criterion for classification: Application to hmm topology optimization."
-#     Document Analysis and Recognition, 2003. Proceedings. Seventh International Conference on. IEEE, 2003.
-#     http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.58.6208&rep=rep1&type=pdf
-#     DIC = log(P(X(i)) - 1/(M-1)SUM(log(P(X(all but i))
-#     """
-#
-#     def dic_score(self, n):
-#         """
-#             Return the dic score based on likehood
-#         """
-#         model = self.base_model(n)
-#         scores = []
-#         for word, (X, lengths) in self.hwords.items():
-#             if word != self.this_word:
-#                 scores.append(model.score(X, lengths))
-#         return model.score(self.X, self.lengths) - np.mean(scores), model
-#
-#     def select(self):
-#         """ select the best model for self.this_word based on
-#         DIC score for n between self.min_n_components and self.max_n_components
-#         :return: GaussianHMM object
-#         """
-#         warnings.filterwarnings("ignore", category=DeprecationWarning)
-#         try:
-#             best_score = float("-Inf")
-#             best_model = None
-#             for n in range(self.min_n_components, self.max_n_components+1):
-#                 score, model = self.dic_score(n)
-#                 if score > best_score:
-#                     best_score = score
-#                     best_model = model
-#             return best_model
-#
-#         except:
-#             return self.base_model(self.n_constant)
 
 
 class SelectorCV(ModelSelector):
