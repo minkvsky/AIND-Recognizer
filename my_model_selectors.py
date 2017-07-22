@@ -79,13 +79,11 @@ class SelectorBIC(ModelSelector):
 
         # TODO implement model selection based on BIC scores
         try:
-            bestscore = 0
-            best_num_components = self.min_n_components
             ls_res = []
-            for n_components in [self.min_n_components, self.max_n_components]:
-                score = self.bic_model(n_components)[1]
-                ls_res.append((n_components, score))
-            return max(ls_res, key = lambda x:x[1])[0]
+            for n_components in range(self.min_n_components, self.max_n_components+1):
+                model, logL = self.bic_model(n_components)
+                ls_res.append((model, logL))
+            return min(ls_res, key = lambda x:x[1])[0]
         except:
             return self.base_model(self.n_constant)
 
@@ -114,12 +112,10 @@ class SelectorDIC(ModelSelector):
 
         # TODO implement model selection based on DIC scores
         try:
-            bestscore = 0
-            best_num_components = self.min_n_components
             ls_res = []
-            for n_components in [self.min_n_components, self.max_n_components]:
-                score = self.dic_model(n_components)[1]
-                ls_res.append((n_components, score))
+            for n_components in range(self.min_n_components, self.max_n_components+1):
+                model, score = self.dic_model(n_components)
+                ls_res.append((model, score))
             return max(ls_res, key = lambda x:x[1])[0]
         except:
             return self.base_model(self.n_constant)
@@ -132,9 +128,46 @@ class SelectorDIC(ModelSelector):
         for word, (X, lengths) in self.hwords.items():
             if word != self.this_word:
                 scores.append(model.score(X, lengths))
-        dic_score = model.score(self.X, self.lengths) - np.mean(scores)
-        return model, dic_score
+        score = model.score(self.X, self.lengths) - np.mean(scores)
+        return model, score
 
+# class SelectorDIC(ModelSelector):
+#     """ select best model based on Discriminative Information Criterion
+#     Biem, Alain. "A model selection criterion for classification: Application to hmm topology optimization."
+#     Document Analysis and Recognition, 2003. Proceedings. Seventh International Conference on. IEEE, 2003.
+#     http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.58.6208&rep=rep1&type=pdf
+#     DIC = log(P(X(i)) - 1/(M-1)SUM(log(P(X(all but i))
+#     """
+#
+#     def dic_score(self, n):
+#         """
+#             Return the dic score based on likehood
+#         """
+#         model = self.base_model(n)
+#         scores = []
+#         for word, (X, lengths) in self.hwords.items():
+#             if word != self.this_word:
+#                 scores.append(model.score(X, lengths))
+#         return model.score(self.X, self.lengths) - np.mean(scores), model
+#
+#     def select(self):
+#         """ select the best model for self.this_word based on
+#         DIC score for n between self.min_n_components and self.max_n_components
+#         :return: GaussianHMM object
+#         """
+#         warnings.filterwarnings("ignore", category=DeprecationWarning)
+#         try:
+#             best_score = float("-Inf")
+#             best_model = None
+#             for n in range(self.min_n_components, self.max_n_components+1):
+#                 score, model = self.dic_score(n)
+#                 if score > best_score:
+#                     best_score = score
+#                     best_model = model
+#             return best_model
+#
+#         except:
+#             return self.base_model(self.n_constant)
 
 
 class SelectorCV(ModelSelector):
@@ -157,13 +190,11 @@ class SelectorCV(ModelSelector):
         # return clf.best_params_['n_components']
 
         try:
-            bestscore = 0
-            best_num_components = self.min_n_components
             ls_res = []
-            for n_components in [self.min_n_components, self.max_n_components]:
-                score = self.CV_model(n_components)[1]
-                ls_res.append((n_components, score))
-            return max(ls_res, key = lambda x:x[1])[0]
+            for n_components in range(self.min_n_components, self.max_n_components+1):
+                model, logL = self.CV_model(n_components)
+                ls_res.append((model, logL))
+            return min(ls_res, key = lambda x:x[1])[0]
         except:
             return self.base_model(self.n_constant)
 
